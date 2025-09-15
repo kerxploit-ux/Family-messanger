@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Семейный мессенджер</title>
+    <meta name="theme-color" content="#0088cc">
+    <meta name="description" content="Приватный мессенджер для нашей семьи">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👨‍👩‍👧‍👦</text></svg>">
+    <style>
+        :root {
+            --primary-color: #0088cc;
+            --bg-color: #ffffff;
+            --secondary-bg: #f0f0f0;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --message-out-bg: #e3f2fd;
+            --message-in-bg: #ffffff;
+            --hover-color: #f5f5f5;
+        }
+
+        .dark-theme {
+            --primary-color: #64b5f6;
+            --bg-color: #121212;
+            --secondary-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --border-color: #333333;
+            --message-out-bg: #2d5176;
+            --message-in-bg: #2c2c2c;
+            --hover-color: #2a2a2a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .install-prompt {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .chats-sidebar {
+            width: 350px;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            background-color: var(--secondary-bg);
+        }
+
+        .search-container {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 18px;
+            border: none;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .chats-list {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .chat-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+
+        .chat-item:hover {
+            background-color: var(--hover-color);
+        }
+
+        .chat-item.active {
+            background-color: var(--hover-color);
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 12px;
+            font-size: 20px;
+        }
+
+        .chat-info {
+            flex: 1;
+        }
+
+        .chat-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .last-message {
+            font-size: 14px;
+            color: #777;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-meta {
+            text-align: right;
+            font-size: 12px;
+            color: #777;
+        }
+
+        .unread {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 4px;
+            font-size: 12px;
+        }
+
+        .chat-window {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            background-color: var(--bg-color);
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            max-width: 70%;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message.outgoing {
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .message-bubble {
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 4px;
+        }
+
+        .message.outgoing .message-bubble {
+            background-color: var(--message-out-bg);
+            border-top-right-radius: 0;
+        }
+
+        .message.incoming .message-bubble {
+            background-color: var(--message-in-bg);
+            border-top-left-radius: 0;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #777;
+            align-self: flex-end;
+        }
+
+        .input-container {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            resize: none;
+            height: 40px;
+            max-height: 120px;
+        }
+
+        .send-button {
+            margin-left: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .auth-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .auth-form {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: var(--secondary-bg);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .auth-form h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .auth-form input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .auth-form button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .auth-switch button {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .chats-sidebar {
+                width: 100%;
+                display: none;
+            }
+            
+            .chats-sidebar.active {
+                display: flex;
+            }
+            
+            .chat-window {
+                display: none;
+            }
+            
+            .chat-window.active {
+                display: flex;
+            }
+            
+            .back-button {
+                display: block;
+            }
+        }
+
+        .back-button {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 20px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="install-prompt" id="installPrompt">
+        Установите это приложение на свой телефон для удобного доступа: 
+        <button id="installButton">Установить</button>
+    </div>
+
+    <div class="auth-screen" id="authScreen">
+        <div class="auth-form" id="loginForm">
+            <h2>Вход в семейный мессенджер</h2>
+            <input type="text" id="loginName" placeholder="Ваше имя">
+            <input type="password" id="loginPassword" placeholder="Пароль семьи">
+            <button id="loginButton">Войти</button>
+            <div class="auth-switch">
+                Нет аккаунта? <button id="showRegister">Зарегистрироваться</button>
+            </div>
+        </div>
+
+        <div class="auth-form" id="registerForm" style="display: none;">
+            <h2>Регистрация в семейном мессенджере</h2>
+            <input type="text" id="registerName" placeholder="Ваше имя">
+            <input type="password" id="registerPassword" placeholder="Придумайте пароль">
+            <input type="password" id="confirmPassword" placeholder="Подтвердите пароль">
+            <input type="text" id="familyCode" placeholder="Код семьи (если есть)">
+            <button id="registerButton">Зарегистрироваться</button>
+            <div class="auth-switch">
+                Уже есть аккаунт? <button id="showLogin">Войти</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="header">
+        <button class="back-button" id="backButton">←</button>
+        <h1>Семейный чат</h1>
+        <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
+
+    <div class="container">
+        <div class="chats-sidebar" id="chatsSidebar">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Поиск">
+            </div>
+            <div class="chats-list" id="chatsList">
+                <!-- Список чатов будет сгенерирован JavaScript -->
+            </div>
+        </div>
+
+        <div class="chat-window" id="chatWindow">
+            <div class="chat-header">
+                <div class="avatar" id="currentChatAvatar">👪</div>
+                <div class="chat-info">
+                    <div class="chat-name" id="currentChatName">Семейный чат</div>
+                    <div class="last-message" id="currentChatStatus">онлайн</div>
+                </div>
+            </div>
+
+            <div class="messages-container" id="messagesContainer">
+                <!-- Сообщения будут добавляться здесь -->
+            </div>
+
+            <div class="input-container">
+                <textarea class="message-input" id="messageInput" placeholder="Введите сообщение..." rows="1"></textarea>
+                <button class="send-button" id="sendButton">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification">
+        Новое сообщение!
+    </div>
+
+    <script>
+        // Данные для чатов и сообщений
+        let chats = [];
+        let currentUser = null;
+        let deferredPrompt = null;
+
+        // Текущий активный чат
+        let activeChatId = null;
+        let isDarkTheme = false;
+
+        // DOM элементы
+        const authScreen = document.getElementById('authScreen');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginButton = document.getElementById('loginButton');
+        const registerButton = document.getElementById('registerButton');
+        const showRegister = document.getElementById('showRegister');
+        const showLogin = document.getElementById('showLogin');
+        const installPrompt = document.getElementById('installPrompt');
+        const installButton = document.getElementById('installButton');
+        const chatsList = document.getElementById('chatsList');
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const themeToggle = document.getElementById('themeToggle');
+        const currentChatName = document.getElementById('currentChatName');
+        const currentChatAvatar = document.getElementById('currentChatAvatar');
+        const currentChatStatus = document.getElementById('currentChatStatus');
+        const chatsSidebar = document.getElementById('chatsSidebar');
+        const chatWindow = document.getElementById('chatWindow');
+        const backButton = document.getElementById('backButton');
+        const notification = document.getElementById('notification');
+
+        // Инициализация при загрузке
+        function init() {
+            // Проверяем, есть ли сохраненные данные пользователя
+            const savedUser = localStorage.getItem('familyMessengerUser');
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    authScreen.style.display = 'none';
+                    initChats();
+                } catch (e) {
+                    localStorage.removeItem('familyMessengerUser');
+                }
+            }
+
+            // Загрузка темы из localStorage
+            const savedTheme = localStorage.getItem('familyMessengerTheme');
+            if (savedTheme === 'dark') {
+                isDarkTheme = true;
+                document.body.classList.add('dark-theme');
+                themeToggle.textContent = '☀️';
+            }
+
+            // Загрузка чатов из localStorage
+            const savedChats = localStorage.getItem('familyMessengerChats');
+            if (savedChats) {
+                try {
+                    chats = JSON.parse(savedChats);
+                } catch (e) {
+                    localStorage.removeItem('familyMessengerChats');
+                }
+            }
+
+            // Если чатов нет, создаем семейный чат по умолчанию
+            if (chats.length === 0) {
+                chats = [{
+                    id: 1,
+                    name: "Семейный чат",
+                    avatar: "👪",
+                    lastMessage: "Добро пожаловать в семейный мессенджер!",
+                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    unread: 0,
+                    messages: [
+                        { text: "Добро пожаловать в семейный мессенджер!", time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), outgoing: false }
+                    ]
+                }];
+                saveChats();
+            }
+
+            // Показываем подсказку об установке приложения
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                installPrompt.style.display = 'block';
+            });
+
+            // Открываем первый чат по умолчанию
+            if (chats.length > 0 && window.innerWidth > 768) {
+                openChat(chats[0].id);
+            }
+        }
+
+        // Сохранение чатов в localStorage
+        function saveChats() {
+            localStorage.setItem('familyMessengerChats', JSON.stringify(chats));
+        }
+
+        // Инициализация чатов
+        function initChats() {
+            chatsList.innerHTML = '';
+            chats.forEach(chat => {
+                const chatItem = document.createElement('div');
+                chatItem.className = 'chat-item';
+                chatItem.dataset.id = chat.id;
+                
+                chatItem.innerHTML = `
+                    <div class="avatar">${chat.avatar}</div>
+                    <div class="chat-info">
+                        <div class="chat-name">${chat.name}</div>
+                        <div class="last-message">${chat.lastMessage}</div>
+                    </div>
+                    <div class="chat-meta">
+                        <div class="time">${chat.time}</div>
+                        ${chat.unread > 0 ? `<div class="unread">${chat.unread}</div>` : ''}
+                    </div>
+                `;
+                
+                chatItem.addEventListener('click', () => openChat(chat.id));
+                chatsList.appendChild(chatItem);
+            });
+        }
+
+        // Открытие чата
+        function openChat(chatId) {
+            activeChatId = chatId;
+            const chat = chats.find(c => c.id === chatId);
+            
+            // Обновляем информацию о чате
+            currentChatName.textContent = chat.name;
+            currentChatAvatar.textContent = chat.avatar;
+            currentChatStatus.textContent = 'онлайн';
+            
+            // Очищаем контейнер сообщений
+            messagesContainer.innerHTML = '';
+            
+            // Добавляем сообщения
+            chat.messages.forEach(message => {
+                addMessageToChat(message.text, message.time, message.outgoing);
+            });
+            
+            // Сбрасываем счетчик непрочитанных
+            chat.unread = 0;
+            saveChats();
+            initChats();
+            
+            // Прокручиваем вниз
+            scrollToBottom();
+            
+            // На мобильных устройствах переключаем вид
+            if (window.innerWidth <= 768) {
+                chatsSidebar.classList.remove('active');
+                chatWindow.classList.add('active');
+            }
+            
+            // Помечаем чат как активный в списке
+            document.querySelectorAll('.chat-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.id == chatId);
+            });
+        }
+
+        // Добавление сообщения в чат
+        function addMessageToChat(text, time, outgoing = false) {
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${outgoing ? 'outgoing' : 'incoming'}`;
+            
+            messageEl.innerHTML = `
+                <div class="message-bubble">${text}</div>
+                <div class="message-time">${time}</div>
+            `;
+            
+            messagesContainer.appendChild(messageEl);
+            scrollToBottom();
+        }
+
+        // Прокрутка вниз
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Отправка сообщения
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text) return;
+            
+            // Добавляем сообщение в UI
+            const now = new Date();
+            const time = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            addMessageToChat(text, time, true);
+            
+            // Сохраняем сообщение в данные чата
+            const chat = chats.find(c => c.id === activeChatId);
+            if (chat) {
+                chat.messages.push({
+                    text: text,
+                    time: time,
+                    outgoing: true
+                });
+                chat.lastMessage = text;
+                chat.time = time;
+                saveChats();
+                initChats();
+            }
+            
+            // Очищаем поле ввода
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            
+            // В реальном приложении здесь был бы код отправки на сервер
+            // Для демо просто добавим автоматический ответ через некоторое время
+            if (activeChatId) {
+                setTimeout(() => {
+                    const responses = [
+                        "Интересное сообщение!",
+                        "Спасибо за информацию!",
+                        "Я подумаю над этим",
+                        "Отлично!",
+                        "Давайте обсудим это позже"
+                    ];
+                    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                    
+                    // Добавляем ответ в UI
+                    addMessageToChat(randomResponse, time, false);
+                    
+                    // Сохраняем ответ в данные чата
+                    if (chat) {
+                        chat.messages.push({
+                            text: randomResponse,
+                            time: time,
+                            outgoing: false
+                        });
+                        chat.lastMessage = randomResponse;
+                        chat.time = time;
+                        
+                        // Увеличиваем счетчик непрочитанных, если чат не активен
+                        if (activeChatId !== chat.id) {
+                            chat.unread++;
+                        }
+                        
+                        saveChats();
+                        initChats();
+                        
+                        // Показываем уведомление, если чат не активен
+                        if (activeChatId !== chat.id) {
+                            showNotification(`Новое сообщение в чате "${chat.name}"`);
+                        }
+                    }
+                }, 1000 + Math.random() * 2000);
+            }
+        }
+
+        // Показать уведомление
+        function showNotification(message) {
+            notification.textContent = message;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        // Переключение темы
+        function toggleTheme() {
+            isDarkTheme = !isDarkTheme;
+            document.body.classList.toggle('dark-theme', isDarkTheme);
+            themeToggle.textContent = isDarkTheme ? '☀️' : '🌙';
+            localStorage.setItem('familyMessengerTheme', isDarkTheme ? 'dark' : 'light');
+        }
+
+        // Автоматическое изменение высоты текстового поля
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Обработка нажатия Enter для отправки (но Shift+Enter для переноса строки)
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Навигация назад на мобильных устройствах
+        backButton.addEventListener('click', function() {
+            chatsSidebar.classList.add('active');
+            chatWindow.classList.remove('active');
+        });
+
+        // Обработчики для аутентификации
+        showRegister.addEventListener('click', function() {
+            loginForm.style.display = 'none';
+            registerForm.style.display = 'block';
+        });
+
+        showLogin.addEventListener('click', function() {
+            registerForm.style.display = 'none';
+            loginForm.style.display = 'block';
+        });
+
+        loginButton.addEventListener('click', function() {
+            const name = document.getElementById('loginName').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!name || !password) {
+                alert('Пожалуйста, заполните все поля');
+                return;
+            }
+            
+            // В реальном приложении здесь была бы проверка на сервере
+            // Для демо просто сохраняем пользователя
+            currentUser = { name, password };
+            localStorage.setItem('familyMessengerUser', JSON.stringify(currentUser));
+            authScreen.style.display = 'none';
+            initChats();
+            
+            // Открываем первый чат
+            if (chats.length > 0) {
+                openChat(chats[0].id);
+            }
+        });
+
+        registerButton.addEventListener('click', function() {
+            const name = document.getElementById('registerName').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const familyCode = document.getElementById('familyCode').value;
+            
+            if (!name || !password || !confirmPassword) {
+                alert('Пожалуйста, заполните все обязательные поля');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                alert('Пароли не совпадают');
+                return;
+            }
+            
+            // В реальном приложении здесь была бы регистрация на сервере
+            // Для демо просто сохраняем пользователя
+            currentUser = { name, password, familyCode };
+            localStorage.setItem('familyMessengerUser', JSON.stringify(currentUser));
+            authScreen.style.display = 'none';
+            initChats();
+            
+            // Открываем первый чат
+            if (chats.length > 0) {
+                openChat(chats[0].id);
+            }
+        });
+
+        // Установка приложения
+        installButton.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
+                installPrompt.style.display = 'none';
+            }
+            
+            deferredPrompt = null;
+        });
+
+        // Назначение обработчиков событий
+        sendButton.addEventListener('click', sendMessage);
+        themeToggle.addEventListener('click', toggleTheme);
+
+        // Инициализация приложения
+        window.addEventListener('load', init);
+    </script>
+
+    <script>
+        // Service Worker для PWA-функциональности
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js').then(function(registration) {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
